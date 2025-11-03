@@ -196,7 +196,7 @@ class DockerContainer:
                 "if `interactive == True`, all of `stdin`, `stdout`, and `stderr` must be `None`"
             )
 
-        cmd_args = ["/usr/bin/env", "docker", "run", "-w=/workdir"]
+        cmd_args = ["/usr/bin/env", "podman", "run", "-w=/workdir"]
 
         if interactive:
             cmd_args.append("-it")
@@ -236,7 +236,31 @@ class DockerContainer:
     @property
     def client(self) -> docker.DockerClient:
         if self._client is None:
-            self._client = docker.from_env()
+            # Try to connect to podman socket
+            # First, try to enable podman socket if not already running
+            podman_socket_path = None
+            xdg_runtime_dir = os.getenv("XDG_RUNTIME_DIR")
+            if xdg_runtime_dir:
+                podman_socket_path = f"{xdg_runtime_dir}/podman/podman.sock"
+                # Check if socket exists, if not try to start podman socket service
+                if not os.path.exists(podman_socket_path):
+                    try:
+                        subprocess.run(
+                            ["systemctl", "--user", "start", "podman.socket"],
+                            check=False,
+                            capture_output=True,
+                        )
+                    except FileNotFoundError:
+                        pass
+
+                # If socket exists now, use it
+                if os.path.exists(podman_socket_path):
+                    self._client = docker.DockerClient(base_url=f"unix://{podman_socket_path}")
+                else:
+                    # Fall back to default (will try DOCKER_HOST env var or default docker socket)
+                    self._client = docker.from_env()
+            else:
+                self._client = docker.from_env()
         return self._client
 
     def exists(self) -> Optional[Image]:
@@ -251,7 +275,7 @@ class DockerContainer:
         # However, that doesn't include progress bars. So call the `docker` command instead:
         name = f"{self.image_name}:{[self.tag, 'latest'][latest]}"
         try:
-            subprocess.check_call(["docker", "pull", name])
+            subprocess.check_call(["podman", "pull", name])
             for image in self.client.images.list():
                 if name in image.tags:
                     return image
@@ -266,7 +290,25 @@ class DockerContainer:
                 "rather than from a source install from GitHub."
             )
         # use the low-level APIClient so we can get streaming build status
-        cli = docker.APIClient()
+        # Configure to use podman socket if available
+        xdg_runtime_dir = os.getenv("XDG_RUNTIME_DIR")
+        podman_socket_path = None
+        if xdg_runtime_dir:
+            podman_socket_path = f"{xdg_runtime_dir}/podman/podman.sock"
+            if not os.path.exists(podman_socket_path):
+                try:
+                    subprocess.run(
+                        ["systemctl", "--user", "start", "podman.socket"],
+                        check=False,
+                        capture_output=True,
+                    )
+                except FileNotFoundError:
+                    pass
+
+        if podman_socket_path and os.path.exists(podman_socket_path):
+            cli = docker.APIClient(base_url=f"unix://{podman_socket_path}")
+        else:
+            cli = docker.APIClient()
         with tqdm(
             desc="Archiving the build directory", unit=" steps", leave=False
         ) as t:
