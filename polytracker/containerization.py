@@ -265,7 +265,8 @@ class DockerContainer:
 
     def exists(self) -> Optional[Image]:
         for image in self.client.images.list():
-            if self.name in image.tags:
+            # Check for exact match or match with registry prefix (for podman compatibility)
+            if self.name in image.tags or any(tag.endswith(self.name) for tag in image.tags):
                 return image
         return None
 
