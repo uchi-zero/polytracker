@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=75.8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polytracker"
+description = "An LLVM-based instrumentation tool for universal taint tracking, dataflow analysis, and tracing."
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Trail of Bits"}
+]
+keywords = ["taint", "tracking", "dataflow", "analysis", "llvm", "instrumentation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
+dynamic = ["version"]
+
+dependencies = [
+    "blight~=0.0.47",
+    "cxxfilt~=0.2.2",
+    "docker~=4.4.0",
+    "graphviz~=0.14.1",
+    "intervaltree~=3.0.2",
+    "networkx~=2.4",
+    "Pillow>=7.2.0",
+    "prompt_toolkit~=3.0.8",
+    "pygments~=2.15.0",
+    "setuptools>=75.8.0",
+    "tqdm>=4.59.0",
+    "typing_extensions>=3.7.4.2",
+    "types-setuptools~=57.4.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=22.3.0",
+    "mypy",
+    "pytest",
+    "flake8",
+    "Sphinx",
+    "sphinx_rtd_theme>=0.6",
+    "types-setuptools",
+]
+
+[project.scripts]
+polytracker = "polytracker.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/trailofbits/polytracker"
+Documentation = "https://trailofbits.github.io/polytracker/latest/"
+Repository = "https://github.com/trailofbits/polytracker"
+Issues = "https://github.com/trailofbits/polytracker/issues"
+
+[tool.setuptools]
+packages = ["polytracker"]
+
+[tool.setuptools.package-data]
+polytracker = [
+    "include/polytracker/**/*.h",
+    "include/taintdag/**/*.h",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "polytracker._version.__version__"}
+
+[tool.black]
+line-length = 127
+target-version = ["py312"]
+exclude = '''
+/(
+    \.git
+  | __pycache__
+  | polytracker/src/compiler-rt
+  | examples
+  | the_klondike
+  | third_party
+)/
+'''
+
+[tool.ruff]
+line-length = 127
+target-version = "py312"
+exclude = [
+    ".git",
+    "__pycache__",
+    "polytracker/src/compiler-rt/**",
+    "examples/**",
+    "the_klondike",
+    "third_party",
+]
+
+[tool.ruff.lint]
+select = ["B", "D3", "D4", "E", "F", "W", "C9"]
+ignore = ["E501", "F403", "F405", "E265", "E203"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 30
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+exclude = [
+    "polytracker/src/compiler-rt",
+]

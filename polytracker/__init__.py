@@ -1,8 +1,10 @@
 from inspect import getmembers, isclass
+from pathlib import Path
 from pkgutil import iter_modules
 from importlib import import_module
 
 from .__main__ import main
+from ._version import __version__
 from .taint_dag import TDProgramTrace as PolyTrackerTrace
 from .polytracker import *
 
